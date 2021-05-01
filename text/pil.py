@@ -1,14 +1,33 @@
 """Create a PNG image for a given text.
 
     Inspired by https://code-maven.com/create-images-with-python-pil-pillow
-    and Al Sweigart's "Automate Boring Stuff with Python", Chapter 17
-    https://automatetheboringstuff.com/chapter17/
-    https://www.tutorialspoint.com/python3/number_sqrt.htm
-    https://stackoverflow.com/questions/704152/how-can-i-convert-a-character-to-a-integer-in-python-and-viceversa
+    and Al Sweigart's "Automate Boring Stuff with Python", Chapter 17. Further
+    links used:
+    - https://automatetheboringstuff.com/chapter17/
+    - https://www.tutorialspoint.com/python3/number_sqrt.htm
+    - https://stackoverflow.com/questions/704152/how-can-i-convert-a-character-to-a-integer-in-python-and-viceversa
 """
 
 from PIL import Image, ImageColor
+import nltk
 import math
+
+"""
+    PSEUDO-CODE:
+
+    1. raw = read_file('input.txt')
+    2. no_stops = remove_stop_words(raw)
+    3. tokens = tokenize(no_stops)
+       lemma = nltk.wordnet.WordNetLemmatizer()
+    4. for token in tokens:
+            append.lemmatized = lemma.lemmatize('leaves')
+    5. turn every lemmatized token into a k-lenght array of pixels depending on the number of characters in the token. Append 0s if the length of the token is not multiple of 3.
+    6. compute n x n size for the image, append [0,0,0] to fill up the pixel array so I get a square 
+"""
+
+
+
+
 
 
 # write a function to cut the text to x * x * 3
@@ -21,20 +40,12 @@ def get_img_dim(text):
     print(width)
     print(height)
     print(num_pixels)
-#    print(num_pixels * 3)
-#    print(len(text))
 
-#img = Image.new('RGB', (60, 30), color = 'red')
-#img.save('pil_red.png')
-
-#img = Image.new('RGB', (60, 30), color = (73, 109, 137))
-#img.save('pil_color.png')
 
 text = "Password security on the UNIX (a trademark of Bell Laboratories) time-sharing system is provided by a collection of programs whose elaborate and strange design is the outgrowth of many years of experience with earlier versions. To help develop a secure system, we have had a continuing competition to devise new ways to attack the security of the system (the bad guy) and, at the same time, to devise new techniques to resist the new attacks (the good guy). This competition has been in the same vein as the competition of long standing between manufacturers of armor plate and those of armor-piercing shells. For this reason, the description that follows will trace the history of the password system rather than simply presenting the program in its current state. In this way, the reasons for the design will be made clearer, as the design cannot be understood without also understanding the potential attacks."
 
-test_text = 64 * 'h' + 64 * 'e' + 64 * 'l' + 64 * 'l' + 64 * 'o' + 64 * 'w' + 64 * 'o' + 64 * 'r' + 64 * 'l' + 64 * 'd' 
 
-#height = int(math.sqrt(len(test_text))) / 3
+
 height = int(math.sqrt(len(text))) / 3
 width = height
 print("[*] w = {0}, h = {1}".format(width, height))
@@ -56,29 +67,3 @@ for x in range(width):
         i = i + 3
 
 im.save('putPixel.png')
-
-
-im = Image.new('RGBA', (100, 100))
-im.getpixel((0, 0))
-
-for x in range(100):
-    for y in range(50):
-        im.putpixel((x, y), (210, 210, 210))
-
-for x in range(100):
-    for y in range(50, 100):
-        im.putpixel((x, y), ImageColor.getcolor('darkgray', 'RGBA'))
-
-print(im.getpixel((0, 0)))
-print(im.getpixel((0, 50)))
-
-
-
-
-print(ord('h'))
-print(ord('e'))
-print(ord('l'))
-print(ord('l'))
-print(ord('o'))
-
-#im.save('putPixel.png')
