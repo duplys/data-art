@@ -7,10 +7,10 @@
     - https://www.tutorialspoint.com/python3/number_sqrt.htm
     - https://stackoverflow.com/questions/704152/how-can-i-convert-a-character-to-a-integer-in-python-and-viceversa
 """
-
+import math
 from PIL import Image, ImageColor
 import nltk
-import math
+
 
 """
     PSEUDO-CODE:
