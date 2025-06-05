@@ -8,8 +8,7 @@
     - https://stackoverflow.com/questions/704152/how-can-i-convert-a-character-to-a-integer-in-python-and-viceversa
 """
 import math
-from PIL import Image, ImageColor
-import nltk
+from PIL import Image
 
 
 """
@@ -46,9 +45,13 @@ text = "Password security on the UNIX (a trademark of Bell Laboratories) time-sh
 
 
 
-height = int(math.sqrt(len(text))) / 3
-width = height
+num_pixels = math.ceil(len(text) / 3)
+height = width = int(math.ceil(math.sqrt(num_pixels)))
 print("[*] w = {0}, h = {1}".format(width, height))
+
+expected_len = width * height * 3
+if len(text) < expected_len:
+    text = text.ljust(expected_len, '\0')
 
 #get_img_dim(text)
 
