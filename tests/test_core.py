@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from PIL import Image
 
@@ -56,38 +58,36 @@ class TestTextToPixels:
 
 
 class TestTextToImage:
-    def test_creates_image_file(self, tmp_path: object) -> None:
+    def test_creates_image_file(self, tmp_path: Path) -> None:
         output = tmp_path / "out.png"
         result = text_to_image("Hello, World!", output)
         assert result == output
         assert output.exists()
 
-    def test_output_is_valid_png(self, tmp_path: object) -> None:
+    def test_output_is_valid_png(self, tmp_path: Path) -> None:
         output = tmp_path / "out.png"
         text_to_image("Hello, World!", output)
         img = Image.open(output)
         assert img.format == "PNG"
 
-    def test_image_dimensions_match_compute(self, tmp_path: object) -> None:
+    def test_image_dimensions_match_compute(self, tmp_path: Path) -> None:
         text = "a" * 300  # 100 pixels → 10×10
         output = tmp_path / "out.png"
         text_to_image(text, output)
         img = Image.open(output)
         assert img.size == (10, 10)
 
-    def test_raises_on_empty_text(self, tmp_path: object) -> None:
+    def test_raises_on_empty_text(self, tmp_path: Path) -> None:
         with pytest.raises(ValueError, match="empty"):
             text_to_image("", tmp_path / "out.png")
 
-    def test_pixel_values_match_ascii(self, tmp_path: object) -> None:
+    def test_pixel_values_match_ascii(self, tmp_path: Path) -> None:
         output = tmp_path / "out.png"
         text_to_image("ABC", output)
         img = Image.open(output).convert("RGB")
         assert img.getpixel((0, 0)) == (65, 66, 67)
 
-    def test_accepts_string_path(self, tmp_path: object) -> None:
+    def test_accepts_string_path(self, tmp_path: Path) -> None:
         output = str(tmp_path / "out.png")
-        from pathlib import Path
-
         result = text_to_image("test text!", output)
         assert result == Path(output)
