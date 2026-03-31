@@ -1,5 +1,11 @@
 """Create a PNG image for a given text.
 
+.. deprecated::
+    This script is the original prototype and is superseded by the
+    ``data_art`` package located in ``src/data_art/``.  Use the
+    ``data-art`` CLI or import ``data_art.core`` instead.
+
+
     Inspired by https://code-maven.com/create-images-with-python-pil-pillow
     and Al Sweigart's "Automate Boring Stuff with Python", Chapter 17. Further
     links used:
