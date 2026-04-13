@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Art — Text to Pixel Art</title>
+    <style>
+      :root {
+        --bg: #0f1117;
+        --surface: #1a1d27;
+        --border: #2e3149;
+        --accent: #6c63ff;
+        --accent-hover: #574fd6;
+        --text: #e2e4f0;
+        --muted: #8b8fa8;
+        --error: #ff6b6b;
+        --success: #63ff8f;
+        --radius: 10px;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem 1rem;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+      }
+
+      header h1 {
+        font-size: 2.4rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, var(--accent), #a78bfa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      header p {
+        margin-top: 0.5rem;
+        color: var(--muted);
+        font-size: 1rem;
+        max-width: 480px;
+      }
+
+      main {
+        width: 100%;
+        max-width: 680px;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+      }
+
+      label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.6rem;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 160px;
+        resize: vertical;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-size: 0.95rem;
+        font-family: inherit;
+        padding: 0.75rem 1rem;
+        line-height: 1.6;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      textarea:focus { border-color: var(--accent); }
+
+      .char-count {
+        text-align: right;
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 0.4rem;
+      }
+
+      button#generate {
+        width: 100%;
+        padding: 0.85rem;
+        background: var(--accent);
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: background 0.2s, transform 0.1s;
+      }
+
+      button#generate:hover { background: var(--accent-hover); }
+      button#generate:active { transform: scale(0.98); }
+      button#generate:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      #status {
+        font-size: 0.875rem;
+        text-align: center;
+        min-height: 1.2em;
+      }
+
+      #status.error { color: var(--error); }
+      #status.success { color: var(--success); }
+
+      #result {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      #result.visible { display: flex; }
+
+      #preview {
+        image-rendering: pixelated;
+        max-width: 100%;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        /* scale up small images so they are visible */
+        width: min(100%, 400px);
+        height: auto;
+      }
+
+      .meta {
+        font-size: 0.82rem;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      a#download {
+        display: inline-block;
+        padding: 0.65rem 1.6rem;
+        background: transparent;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        border-radius: var(--radius);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: background 0.2s, color 0.2s;
+      }
+
+      a#download:hover {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      footer {
+        margin-top: 3rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+        text-align: center;
+      }
+
+      footer a { color: var(--muted); }
+
+      /* loading spinner */
+      .spinner {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        vertical-align: -0.15em;
+        margin-right: 0.4em;
+      }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Data Art</h1>
+      <p>Transform any text into a unique visual fingerprint by encoding characters as RGB pixels.</p>
+    </header>
+
+    <main>
+      <div class="card">
+        <label for="inputText">Your text</label>
+        <textarea
+          id="inputText"
+          placeholder="Type or paste any text here — a poem, a quote, source code, anything…"
+          autofocus
+        ></textarea>
+        <div class="char-count"><span id="charCount">0</span> characters</div>
+      </div>
+
+      <button id="generate" type="button">Generate Image</button>
+
+      <div id="status" role="status" aria-live="polite"></div>
+
+      <div id="result" class="card">
+        <img id="preview" src="" alt="Generated data-art image" />
+        <p class="meta" id="imageMeta"></p>
+        <a id="download" href="#" download="data-art.png">⬇ Download PNG</a>
+      </div>
+    </main>
+
+    <footer>
+      <p>
+        <a href="https://github.com/duplys/data-art" target="_blank" rel="noopener">GitHub</a>
+        &nbsp;·&nbsp; data-art v0.1.0
+      </p>
+    </footer>
+
+    <script>
+      const textarea   = document.getElementById('inputText');
+      const charCount  = document.getElementById('charCount');
+      const generateBtn = document.getElementById('generate');
+      const status     = document.getElementById('status');
+      const result     = document.getElementById('result');
+      const preview    = document.getElementById('preview');
+      const imageMeta  = document.getElementById('imageMeta');
+      const downloadLink = document.getElementById('download');
+
+      textarea.addEventListener('input', () => {
+        charCount.textContent = textarea.value.length;
+      });
+
+      generateBtn.addEventListener('click', async () => {
+        const text = textarea.value;
+        if (!text.trim()) {
+          showStatus('Please enter some text first.', 'error');
+          return;
+        }
+
+        setLoading(true);
+        showStatus('');
+        result.classList.remove('visible');
+
+        try {
+          const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+          });
+
+          if (!response.ok) {
+            const { error } = await response.json();
+            throw new Error(error || 'Unknown server error');
+          }
+
+          const blob = await response.blob();
+          const url  = URL.createObjectURL(blob);
+
+          // Show image
+          preview.src = url;
+          downloadLink.href = url;
+
+          // Wait for image to load to get natural dimensions
+          await new Promise((resolve, reject) => {
+            preview.onload  = resolve;
+            preview.onerror = reject;
+          });
+
+          const numPixels = Math.floor(text.length / 3);
+          const side = Math.floor(Math.sqrt(Math.max(1, numPixels)));
+          imageMeta.textContent =
+            `${side}×${side} px · ${text.length} characters · ${numPixels} pixels encoded`;
+
+          result.classList.add('visible');
+          showStatus('Image generated successfully!', 'success');
+
+        } catch (err) {
+          showStatus(err.message, 'error');
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      function setLoading(loading) {
+        generateBtn.disabled = loading;
+        generateBtn.innerHTML = loading
+          ? '<span class="spinner"></span>Generating…'
+          : 'Generate Image';
+      }
+
+      function showStatus(message, type = '') {
+        status.textContent = message;
+        status.className = type;
+      }
+    </script>
+  </body>
+</html>
