@@ -11,14 +11,15 @@ text.
 
 1. [Introduction](#introduction)
 2. [Architecture](#architecture)
-3. [Installation](#installation)
-4. [Usage](#usage)
-5. [API Reference](#api-reference)
-6. [Algorithm Details](#algorithm-details)
-7. [Docker](#docker)
-8. [Development](#development)
-9. [Troubleshooting](#troubleshooting)
-10. [Roadmap](#roadmap)
+3. [Web Application (Node.js / TypeScript)](#web-application-nodejs--typescript)
+4. [Installation](#installation)
+5. [Usage](#usage)
+6. [API Reference](#api-reference)
+7. [Algorithm Details](#algorithm-details)
+8. [Docker](#docker)
+9. [Development](#development)
+10. [Troubleshooting](#troubleshooting)
+11. [Roadmap](#roadmap)
 
 ---
 
@@ -61,6 +62,78 @@ PNG Output
 | Build backend | [Hatchling](https://hatch.pypa.io/) |
 | Testing | [pytest](https://docs.pytest.org/) |
 | Linting / formatting | [Ruff](https://docs.astral.sh/ruff/) |
+
+---
+
+## Web Application (Node.js / TypeScript)
+
+A fully self-contained web application re-implements the core algorithm in
+**Node.js + TypeScript** and exposes it through a browser-friendly UI and a
+small REST API.
+
+### Tech Stack (web)
+
+| Purpose | Library / Tool |
+|---------|---------------|
+| HTTP server | [Express](https://expressjs.com/) ≥ 4.18 |
+| PNG generation | [pngjs](https://github.com/pngjs/pngjs) ≥ 7 |
+| Language | [TypeScript](https://www.typescriptlang.org/) ≥ 5.4 |
+| Testing | [Jest](https://jestjs.io/) + ts-jest |
+| Runtime | Node.js 20 (LTS) |
+| Container | Docker (multi-stage) + Docker Compose |
+
+### Quick start with Docker Compose
+
+```bash
+# Clone and start (builds the image automatically)
+git clone <repository-url>
+cd data-art
+docker compose up --build
+```
+
+Then open **http://localhost:3000** in your browser.
+
+### Quick start without Docker
+
+```bash
+cd web
+npm install
+npm run build
+npm start
+# → http://localhost:3000
+```
+
+### HTTP API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/` | Browser frontend |
+| `POST` | `/api/generate` | Accept `{ "text": "…" }` JSON body, return PNG image |
+| `GET` | `/health` | Liveness probe — returns `{ "status": "ok" }` |
+
+**Example:**
+
+```bash
+curl -X POST http://localhost:3000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Hello, World!"}' \
+  --output hello.png
+```
+
+### Project layout (web)
+
+```
+web/
+├── src/
+│   ├── core.ts          # Text→pixel→PNG logic (TypeScript)
+│   ├── core.test.ts     # Jest unit tests
+│   └── server.ts        # Express HTTP server
+├── public/
+│   └── index.html       # Browser frontend (no build step)
+├── package.json
+├── tsconfig.json
+└── Dockerfile           # Multi-stage Node 20 image
+```
 
 ---
 
@@ -218,9 +291,25 @@ The canvas is padded with black pixels `(0, 0, 0)` to fill any remainder.
 
 ## Docker
 
-A multi-stage Dockerfile is included at the repository root.  The builder
-stage uses the official `uv` image to install dependencies; the runtime stage
-is a lean Python 3.12 image.
+### Web application (recommended for deployment)
+
+The web application ships with its own multi-stage Dockerfile (`web/Dockerfile`)
+and a `docker-compose.yml` at the repo root for easy deployment on a VPS or
+alongside other services.
+
+```bash
+# Build and run with Docker Compose
+docker compose up --build
+
+# Or run directly
+docker build -t data-art ./web
+docker run --rm -p 3000:3000 data-art
+```
+
+### CLI Docker image
+
+A separate multi-stage Dockerfile at the repository root builds the original
+Python CLI tool.
 
 ```bash
 # Build
@@ -237,31 +326,33 @@ docker run --rm -v "$(pwd):/data" data-art /data/myfile.txt -o /data/out.png
 
 ## Development
 
-### Set up the development environment
+### Python CLI
 
 ```bash
-uv sync --all-groups
+uv sync --all-groups        # install all dependencies
+uv run pytest               # run tests
+uv run ruff check .         # lint
+uv run ruff format .        # format
 ```
 
-### Run the tests
+### Web application (Node.js / TypeScript)
 
 ```bash
-uv run pytest
-```
-
-### Lint and format
-
-```bash
-uv run ruff check .
-uv run ruff format .
+cd web
+npm install                 # install dependencies
+npm run build               # compile TypeScript → dist/
+npm start                   # start production server
+npm test                    # run Jest unit tests
+npm run dev                 # run with ts-node (development)
 ```
 
 ### Project layout
 
 ```
 data-art/
-├── pyproject.toml          # Project metadata, deps, tool config
-├── Dockerfile              # Multi-stage container build
+├── pyproject.toml          # Python project metadata, deps, tool config
+├── Dockerfile              # Multi-stage CLI container build (Python)
+├── docker-compose.yml      # Compose file for the web application
 ├── ROADMAP.md              # Feature extension plan
 ├── src/
 │   └── data_art/
@@ -270,6 +361,16 @@ data-art/
 │       └── cli.py          # Click-based CLI
 ├── tests/
 │   └── test_core.py        # pytest unit tests
+├── web/
+│   ├── src/
+│   │   ├── core.ts         # Core text→image logic (TypeScript)
+│   │   ├── core.test.ts    # Jest unit tests
+│   │   └── server.ts       # Express HTTP server
+│   ├── public/
+│   │   └── index.html      # Browser frontend
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── Dockerfile          # Multi-stage Node 20 image
 └── text/
     └── pil.py              # Original prototype script (deprecated)
 ```
