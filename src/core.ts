@@ -57,11 +57,12 @@ export function textToImageBuffer(text: string): Buffer {
   const totalPixels = width * height;
 
   // Trim or pad the pixel list to fill the canvas exactly.
-  const blackPixel: Pixel = [0, 0, 0];
-  const canvasPixels: Pixel[] = [
-    ...pixels,
-    ...Array<Pixel>(totalPixels).fill(blackPixel),
-  ].slice(0, totalPixels);
+  const padding = totalPixels - pixels.length;
+  const paddingPixels: Pixel[] = Array.from({ length: Math.max(0, padding) }, (): Pixel => [0, 0, 0]);
+  const canvasPixels: Pixel[] =
+    padding > 0
+      ? [...pixels, ...paddingPixels]
+      : pixels.slice(0, totalPixels);
 
   const png = new PNG({ width, height });
 
