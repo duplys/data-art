@@ -36,150 +36,137 @@ text.
 ## Architecture
 
 ```
-Input Text
-    │
-    ▼
-compute_dimensions()   →   (width, height)  pixels
-    │
-    ▼
-text_to_pixels()       →   [(r,g,b), …]
-    │
-    ▼
-PIL Image.putdata()    →   square PNG image
-    │
-    ▼
-PNG Output
+Browser / API Client
+       │
+       │  POST /generate  { text: "…" }
+       ▼
+  Express server (Node.js + TypeScript)
+       │
+       ├─► computeDimensions()  →  (width, height)
+       │
+       ├─► textToPixels()       →  [(r,g,b), …]
+       │
+       └─► pngjs PNG.sync.write()  →  PNG bytes
+               │
+               │  200 OK  Content-Type: image/png
+               ▼
+        Browser renders image inline
 ```
 
 ### Technology Stack
 
 | Purpose | Library / Tool |
 |---------|---------------|
-| Image generation | [Pillow](https://pillow.readthedocs.io/) ≥ 12.1.1 |
-| CLI | [Click](https://click.palletsprojects.com/) ≥ 8.1 |
-| Package management | [uv](https://docs.astral.sh/uv/) |
-| Build backend | [Hatchling](https://hatch.pypa.io/) |
-| Testing | [pytest](https://docs.pytest.org/) |
-| Linting / formatting | [Ruff](https://docs.astral.sh/ruff/) |
+| Runtime | [Node.js](https://nodejs.org/) 22 LTS |
+| Language | [TypeScript](https://www.typescriptlang.org/) 5 |
+| HTTP framework | [Express](https://expressjs.com/) 4 |
+| PNG generation | [pngjs](https://github.com/pngjs/pngjs) 7 |
+| Testing | [Jest](https://jestjs.io/) + ts-jest |
+| Containerisation | [Docker](https://docs.docker.com/) / [Docker Compose](https://docs.docker.com/compose/) |
 
 ---
 
 ## Installation
 
-### Recommended: uv
+### Docker Compose (recommended for deployment)
 
 ```bash
-# Install uv (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
 # Clone the repository
 git clone <repository-url>
 cd data-art
 
-# Install the package (creates an isolated virtual environment)
-uv sync
-
-# Run
-uv run data-art --help
+# Build and start the web application
+docker compose up --build
 ```
 
-### pip
+The app will be available at **http://localhost:3000**.
 
-```bash
-git clone <repository-url>
-cd data-art
-pip install .
-data-art --help
-```
-
-### Docker
+### Docker (standalone)
 
 ```bash
 docker build -t data-art .
-docker run --rm -v "$(pwd):/data" data-art --text "Hello, World!" -o /data/hello.png
+docker run --rm -p 3000:3000 data-art
+```
+
+### Local development
+
+```bash
+# Prerequisites: Node.js 22+
+npm install
+npm run dev   # starts the server with ts-node at http://localhost:3000
 ```
 
 ---
 
 ## Usage
 
-### Generate an image from a string
+### Web interface
+
+Open **http://localhost:3000** in your browser, paste any text into the form,
+and click **Generate Image**.  The resulting PNG is displayed inline and can be
+downloaded with the link below the image.
+
+### REST API
+
+#### `POST /generate`
+
+Accepts a JSON body with a `text` field and returns a PNG image.
 
 ```bash
-data-art --text "To be or not to be, that is the question." -o hamlet.png
+curl -X POST http://localhost:3000/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"To be or not to be, that is the question."}' \
+  --output hamlet.png
 ```
 
-### Generate an image from a file
+#### `GET /health`
+
+Liveness probe for container orchestration.
 
 ```bash
-data-art essay.txt -o essay.png
-```
-
-### Read from standard input
-
-```bash
-cat mybook.txt | data-art -o book.png
-```
-
-### CLI reference
-
-```
-Usage: data-art [OPTIONS] [INPUT]
-
-  Convert text to a data-art PNG image.
-
-  Reads text from INPUT file, from --text, or from standard input, then
-  generates a PNG where each pixel's RGB values encode three consecutive
-  characters via their ASCII values.
-
-Arguments:
-  INPUT  [optional]
-
-Options:
-  -t, --text TEXT    Input text string (alternative to file input).
-  -o, --output PATH  Output PNG file path.  [default: output.png]
-  -h, --help         Show this message and exit.
+curl http://localhost:3000/health
+# → {"status":"ok"}
 ```
 
 ---
 
 ## API Reference
 
-The public Python API lives in `data_art.core`:
+The public TypeScript API lives in `src/core.ts`:
 
-### `compute_dimensions(text: str) -> tuple[int, int]`
+### `computeDimensions(text: string): [number, number]`
 
 Compute the square image dimensions for a given text.
 
-```python
-from data_art.core import compute_dimensions
+```typescript
+import { computeDimensions } from "./core";
 
-w, h = compute_dimensions("Hello!")  # e.g. (1, 1) for short text
+const [w, h] = computeDimensions("Hello!");  // e.g. [1, 1] for short text
 ```
 
-### `text_to_pixels(text: str) -> list[tuple[int, int, int]]`
+### `textToPixels(text: string): Pixel[]`
 
-Convert a text string to a list of `(r, g, b)` tuples.
+Convert a text string to an array of `[r, g, b]` tuples.
 
-```python
-from data_art.core import text_to_pixels
+```typescript
+import { textToPixels } from "./core";
 
-pixels = text_to_pixels("ABC")
-# → [(65, 66, 67)]
+const pixels = textToPixels("ABC");
+// → [[65, 66, 67]]
 ```
 
-### `text_to_image(text: str, output_path: Path | str = "output.png") -> Path`
+### `textToImageBuffer(text: string): Buffer`
 
-Full pipeline: convert text to a PNG and save it.
+Full pipeline: convert text to a PNG and return it as a Node.js `Buffer`.
 
-```python
-from data_art.core import text_to_image
+```typescript
+import { textToImageBuffer } from "./core";
 
-path = text_to_image("Hello, World!", "hello.png")
-print(path)  # PosixPath('hello.png')
+const buf = textToImageBuffer("Hello, World!");
+// buf is a valid PNG buffer
 ```
 
-Raises `ValueError` if `text` is empty.
+Throws `Error` if `text` is empty.
 
 ---
 
@@ -218,20 +205,40 @@ The canvas is padded with black pixels `(0, 0, 0)` to fill any remainder.
 
 ## Docker
 
-A multi-stage Dockerfile is included at the repository root.  The builder
-stage uses the official `uv` image to install dependencies; the runtime stage
-is a lean Python 3.12 image.
+A multi-stage `Dockerfile` and a `docker-compose.yml` are included at the
+repository root.  The builder stage compiles TypeScript; the runtime stage
+copies only the compiled JavaScript and production dependencies into a lean
+Node.js 22 Alpine image.
+
+### docker-compose (recommended)
+
+```bash
+# Build the image and start the service
+docker compose up --build
+
+# Run in the background
+docker compose up -d --build
+
+# Stop
+docker compose down
+```
+
+### docker (standalone)
 
 ```bash
 # Build
 docker build -t data-art .
 
-# Run with a text argument
-docker run --rm -v "$(pwd):/data" data-art --text "Hello" -o /data/out.png
+# Run
+docker run --rm -p 3000:3000 data-art
 
-# Run with a file
-docker run --rm -v "$(pwd):/data" data-art /data/myfile.txt -o /data/out.png
+# Custom port
+docker run --rm -p 8080:8080 -e PORT=8080 data-art
 ```
+
+The service exposes **port 3000** by default and responds to a `GET /health`
+health-check so it integrates cleanly with reverse proxies (e.g. Caddy,
+nginx) or orchestrators like Docker Swarm.
 
 ---
 
@@ -240,45 +247,51 @@ docker run --rm -v "$(pwd):/data" data-art /data/myfile.txt -o /data/out.png
 ### Set up the development environment
 
 ```bash
-uv sync --all-groups
+npm install
 ```
 
 ### Run the tests
 
 ```bash
-uv run pytest
+npm test
 ```
 
-### Lint and format
+### Build
 
 ```bash
-uv run ruff check .
-uv run ruff format .
+npm run build   # compiles TypeScript → dist/
+```
+
+### Start the development server
+
+```bash
+npm run dev     # runs with ts-node (no build step required)
 ```
 
 ### Project layout
 
 ```
 data-art/
-├── pyproject.toml          # Project metadata, deps, tool config
-├── Dockerfile              # Multi-stage container build
-├── ROADMAP.md              # Feature extension plan
+├── package.json            # Node.js project metadata & scripts
+├── tsconfig.json           # TypeScript compiler configuration
+├── Dockerfile              # Multi-stage Node.js container build
+├── docker-compose.yml      # Compose file for deployment
+├── .dockerignore
 ├── src/
-│   └── data_art/
-│       ├── __init__.py
-│       ├── core.py         # Core text→image logic
-│       └── cli.py          # Click-based CLI
-├── tests/
-│   └── test_core.py        # pytest unit tests
-└── text/
-    └── pil.py              # Original prototype script (deprecated)
+│   ├── core.ts             # Core text→image logic (TypeScript)
+│   └── server.ts           # Express web server
+├── public/
+│   └── index.html          # Web UI
+└── tests/
+    └── ts/
+        └── core.test.ts    # Jest unit tests
 ```
 
 ### Contributing
 
 1. Fork the repository.
 2. Create a feature branch: `git checkout -b feature/my-feature`.
-3. Make your changes, add tests, and run `uv run pytest` + `uv run ruff check .`.
+3. Make your changes, add tests, and run `npm test`.
 4. Open a pull request — CI will run automatically.
 
 ---
@@ -287,10 +300,10 @@ data-art/
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| `ValueError: Input text must not be empty.` | Empty input | Provide non-empty text. |
-| `ModuleNotFoundError: No module named 'PIL'` | Pillow not installed | `uv sync` or `pip install pillow` |
-| `ValueError: width and height must be > 0` | Text too short (< 3 chars) | Use at least 3 characters. |
-| Docker build fails | Docker not running | Start Docker Desktop / Engine. |
+| `Error: Input text must not be empty.` | Empty input | Provide non-empty text. |
+| `Cannot find module 'pngjs'` | Dependencies not installed | Run `npm install` |
+| Port already in use | Another process on port 3000 | Set `PORT=3001` env variable |
+| Docker build fails | Docker not running | Start Docker Desktop / Engine |
 
 ---
 

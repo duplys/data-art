@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Art</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #0f0f11;
+        color: #e8e8e8;
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 2rem 1rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin-bottom: 0.25rem;
+        background: linear-gradient(135deg, #7c6af7, #4fc3f7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      p.subtitle {
+        color: #888;
+        margin: 0 0 2rem;
+        font-size: 0.95rem;
+        text-align: center;
+        max-width: 480px;
+      }
+
+      form {
+        width: 100%;
+        max-width: 560px;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 160px;
+        padding: 0.85rem 1rem;
+        border: 1.5px solid #2e2e3a;
+        border-radius: 10px;
+        background: #16161e;
+        color: #e8e8e8;
+        font-size: 0.95rem;
+        resize: vertical;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      textarea:focus {
+        border-color: #7c6af7;
+      }
+
+      button[type="submit"] {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #7c6af7, #4fc3f7);
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s, transform 0.1s;
+      }
+
+      button[type="submit"]:hover {
+        opacity: 0.9;
+      }
+
+      button[type="submit"]:active {
+        transform: scale(0.98);
+      }
+
+      button[type="submit"]:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      #result {
+        margin-top: 2rem;
+        width: 100%;
+        max-width: 560px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      #result img {
+        image-rendering: pixelated;
+        border-radius: 8px;
+        border: 1.5px solid #2e2e3a;
+        max-width: 100%;
+      }
+
+      #error-message {
+        color: #f47067;
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      #download-link {
+        color: #4fc3f7;
+        font-size: 0.9rem;
+        text-decoration: none;
+      }
+
+      #download-link:hover {
+        text-decoration: underline;
+      }
+
+      .spinner {
+        width: 28px;
+        height: 28px;
+        border: 3px solid #2e2e3a;
+        border-top-color: #7c6af7;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Data Art</h1>
+    <p class="subtitle">
+      Transform any text into a visual &ldquo;data fingerprint&rdquo; &mdash;
+      each group of three characters becomes an RGB pixel.
+    </p>
+
+    <form id="generate-form">
+      <textarea
+        id="text-input"
+        name="text"
+        placeholder="Paste or type your text here…"
+        required
+      ></textarea>
+      <button type="submit" id="submit-btn">Generate Image</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+      const form = document.getElementById("generate-form");
+      const result = document.getElementById("result");
+      const submitBtn = document.getElementById("submit-btn");
+      const textInput = document.getElementById("text-input");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        result.innerHTML = '<div class="spinner"></div>';
+        submitBtn.disabled = true;
+
+        try {
+          const response = await fetch("/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: textInput.value }),
+          });
+
+          if (!response.ok) {
+            const json = await response.json();
+            result.innerHTML = `<p id="error-message">${escapeHtml(json.error ?? "An error occurred.")}</p>`;
+            return;
+          }
+
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+
+          result.innerHTML = `
+            <img src="${url}" alt="Generated data-art image" />
+            <a id="download-link" href="${url}" download="data-art.png">Download PNG</a>
+          `;
+        } catch {
+          result.innerHTML =
+            '<p id="error-message">Network error. Please try again.</p>';
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+*.md
+tests
+text
+src/data_art
+pyproject.toml
+.venv
+.ruff_cache
+.pytest_cache
+__pycache__
+*.py[cod]

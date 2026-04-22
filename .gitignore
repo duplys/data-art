@@ -5,7 +5,6 @@ __pycache__/
 *.pyd
 *.egg-info/
 *.egg
-dist/
 build/
 .eggs/
 .mypy_cache/
@@ -21,6 +20,11 @@ env/
 
 # uv
 uv.lock
+
+# Node.js
+node_modules/
+dist/
+npm-debug.log*
 
 # IDE
 .vscode/

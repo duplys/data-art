@@ -1,26 +1,32 @@
 # syntax=docker/dockerfile:1
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+
+# ── Build stage ──────────────────────────────────────────────────────────────
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install project dependencies into an isolated virtual environment.
-COPY pyproject.toml README.md LICENSE ./
+COPY package*.json ./
+RUN npm ci
+
+COPY tsconfig.json ./
 COPY src/ ./src/
-RUN uv sync --no-dev --no-editable
+
+RUN npm run build
 
 # ── Runtime stage ────────────────────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+FROM node:22-alpine AS runtime
 
 WORKDIR /app
 
-# Copy the pre-built virtual environment from the builder stage.
-COPY --from=builder /app/.venv /app/.venv
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-ENV PATH="/app/.venv/bin:$PATH"
+COPY --from=builder /app/dist ./dist
+COPY public/ ./public/
 
-# Mount /data as the working directory so users can pass files easily:
-#   docker run --rm -v "$(pwd):/data" data-art --text "Hello" -o /data/out.png
-WORKDIR /data
+ENV PORT=3000
+EXPOSE 3000
 
-ENTRYPOINT ["data-art"]
-CMD ["--help"]
+USER node
+
+CMD ["node", "dist/server.js"]
